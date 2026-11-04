@@ -1,0 +1,60 @@
+name: Android17 official HwBinder tagged ABI source integrity
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libhwbinder-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tagged-official-hwbinder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check official Android17 Gitiles tree, threadpool guard, Parcel validation and Soong graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          from urllib.request import Request, urlopen
+
+          base = "https://android.googlesource.com/platform/system/libhwbinder/+/refs/tags/android-17.0.0_r1/"
+          def get(path, fmt):
+              with urlopen(Request(base + path + "?format=" + fmt,
+                                   headers={"User-Agent": "PixelExperience-Reborn-A17-HwBinder-audit"}),
+                           timeout=60) as resp:
+                  return resp.read()
+          def source(path):
+              return base64.b64decode(get(path, "TEXT")).decode("utf-8")
+
+          raw = get("", "JSON").decode("utf-8")
+          assert raw.startswith(")]}'"), "not a Gitiles tree response"
+          root = json.loads(raw.split("\n", 1)[1])
+          assert root["id"] == "901e90f23d898265adf60c8645216ede9b308a27", root.get("id")
+          paths = {x["name"] for x in root["entries"]}
+          for name in ("Android.bp", "ProcessState.cpp", "Parcel.cpp", "IPCThreadState.cpp", "binder_kernel.h"):
+              assert name in paths, name
+
+          bp = source("Android.bp")
+          state = source("ProcessState.cpp")
+          parcel = source("Parcel.cpp")
+          for item in ('name: "libhwbinder_headers"', 'name: "libhwbinder"',
+                       'name: "libhwbinder-impl-internal"', 'name: "hwbinder_lto"',
+                       '"libutils_headers"', '"com.android.bt"',
+                       '"com.android.nfcservices"', '"com.android.tethering"'):
+              assert item in bp, item
+          assert "mThreadPoolStarted && maxThreads < mMaxThreads" in state, "upstream threadpool guard removed"
+          assert "Binder threadpool cannot be shrunk after starting" in state
+          assert '"/dev/hwbinder"' in state
+          assert "parent >= mObjectsSize" in parcel, "upstream Parcel bounds check lost"
+          assert "Parent index %zu but only have %zu objects" in parcel
+          print("PASS: AOSP17 exact libhwbinder Git tree, threadpool, Parcel and APEX/Soong source checks")
+          print("NOT TESTED: Binder driver ABI, Soong/VTS, vendor HAL or physical mondrian.")
+          PY

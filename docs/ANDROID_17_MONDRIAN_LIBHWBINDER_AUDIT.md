@@ -29,7 +29,8 @@ Date: 2026-11-04. Source-only audit; **no Android17 libhwbinder replacement and 
 
 - [x] Historical threadpool-shrink revert and parent-index bounds check identified.
 - [x] AOSP17 upstream changes / exact Git tree identified.
-- [x] Isolated historical source audit and independent tagged upstream integrity workflows authored.
+- [x] Historical PE threadpool/Parcel source CI [PASS #41793411252](https://github.com/PixelExperience-Reborn/system_libhwbinder/actions/runs/41793411252).
+- [x] Official Android17 r1 exact Git tree, threadpool guard, Parcel parent bounds and modern Soong source CI [PASS #41793411198](https://github.com/PixelExperience-Reborn/system_libhwbinder/actions/runs/41793411198). **Source-level only**, not full Binder device validation.
 - [ ] Android17 Soong/libhidl ABI link build, VINTF/CTS/VTS/fuzzer and physical mondrian testing.
 - [ ] Real vendor blob and kernel compatibility validation.
 

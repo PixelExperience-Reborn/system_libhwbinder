@@ -1,0 +1,20 @@
+name: Android17 libhwbinder historic IPC audit
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libhwbinder-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-abi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify archived binder threadpool and Parcel invariants
+        run: python3 tools/verify_a17_libhwbinder_legacy.py
